@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -127,7 +127,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-inter), system-ui, sans-serif;
   }
-  /* Custom scrollbar */
+  
   ::-webkit-scrollbar {
     width: 4px;
   }
@@ -150,7 +150,7 @@
   .will-change-opacity {
     will-change: opacity;
   }
-  /* Xai glow utility using existing accent variables */
+  
   .xai-glow {
     box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.4);
   }

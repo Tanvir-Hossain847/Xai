@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
@@ -7,14 +7,10 @@ interface SectionWrapperProps {
     children: React.ReactNode;
     className?: string;
     id?: string;
-    /** Delay before fade-in starts (seconds) */
+    
     delay?: number;
 }
 
-/**
- * Wraps sections with a scroll-triggered fade + Y-offset reveal.
- * Keeps layout clean — all section spacing is handled here.
- */
 export function SectionWrapper({
     children,
     className = "",

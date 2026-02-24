@@ -1,10 +1,7 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 
-/**
- * Minimal footer — keeps focus on product, not branding noise.
- */
 export function Footer() {
     return (
         <motion.footer

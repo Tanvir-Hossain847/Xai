@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
@@ -6,16 +6,12 @@ import { motion, useInView } from "framer-motion";
 interface AnimatedTextProps {
     text: string;
     className?: string;
-    /** Stagger delay between words */
+    
     stagger?: number;
     delay?: number;
     as?: "h1" | "h2" | "h3" | "p" | "span";
 }
 
-/**
- * Splits text into words and reveals each with a staggered Y-offset + fade.
- * Triggers once when the element enters the viewport.
- */
 export function AnimatedText({
     text,
     className = "",

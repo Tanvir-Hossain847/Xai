@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView, useSpring, useTransform } from "framer-motion";
 import { AnimatedText } from "@/components/primitives/AnimatedText";
 
-// --- Animated counter hook ---
 function useCountUp(target: number, inView: boolean, duration = 1.4) {
     const spring = useSpring(0, { duration: duration * 1000, bounce: 0 });
     const display = useTransform(spring, (v) =>
@@ -16,7 +15,6 @@ function useCountUp(target: number, inView: boolean, duration = 1.4) {
     return display;
 }
 
-// --- Metrics ---
 const metrics = [
     { label: "Data Sources", value: 142, suffix: "", delta: "+12", trend: "up" },
     { label: "Insights Generated", value: 3847, suffix: "", delta: "+204", trend: "up" },
@@ -51,7 +49,7 @@ function MetricCard({ m, inView, index }: { m: typeof metrics[0]; inView: boolea
                     {m.delta}
                 </motion.span>
             </div>
-            {/* Thin progress stripe at card bottom */}
+            
             <div className="h-0.5 w-full bg-border/30 rounded-full overflow-hidden">
                 <motion.div
                     className="h-full bg-primary/50 rounded-full"
@@ -64,14 +62,12 @@ function MetricCard({ m, inView, index }: { m: typeof metrics[0]; inView: boolea
     );
 }
 
-// --- Live Area Chart ---
 const BASE_POINTS = [12, 32, 18, 48, 35, 58, 42, 72, 55, 80, 63, 90];
 
 function LiveAreaChart({ inView }: { inView: boolean }) {
     const [points, setPoints] = useState(BASE_POINTS);
 
-    // Simulate live data ticks
-    useEffect(() => {
+useEffect(() => {
         if (!inView) return;
         const id = setInterval(() => {
             setPoints((prev) => {
@@ -115,7 +111,7 @@ function LiveAreaChart({ inView }: { inView: boolean }) {
                 transition={{ duration: 0.7, ease: "easeInOut" }}
                 initial={{ pathLength: 0, opacity: 0 }}
             />
-            {/* Latest point pulse */}
+            
             {(() => {
                 const last = points[points.length - 1];
                 const lx = (points.length - 1) * step;
@@ -143,7 +139,6 @@ function LiveAreaChart({ inView }: { inView: boolean }) {
     );
 }
 
-// --- Insight feed ---
 const insightFeed = [
     { message: "Pipeline #07 latency spiked 340% — root cause isolated to upstream connector.", time: "2m ago", severity: "high" },
     { message: "Recurring data drop every Tue 03:00 UTC — scheduled maintenance window detected.", time: "18m ago", severity: "info" },
@@ -169,8 +164,7 @@ function OverviewPanel({ inView }: { inView: boolean }) {
                 {metrics.map((m, i) => <MetricCard key={m.label} m={m} inView={inView} index={i} />)}
             </div>
 
-            {/* Chart */}
-            <div className="rounded-xl border border-border/50 bg-card/60 p-4">
+<div className="rounded-xl border border-border/50 bg-card/60 p-4">
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-medium text-foreground">Insight Volume</span>
                     <div className="flex items-center gap-1.5">
@@ -184,8 +178,7 @@ function OverviewPanel({ inView }: { inView: boolean }) {
                 </div>
             </div>
 
-            {/* Feed */}
-            <div className="rounded-xl border border-border/50 bg-card/60 p-4 space-y-3">
+<div className="rounded-xl border border-border/50 bg-card/60 p-4 space-y-3">
                 <span className="text-xs font-medium text-foreground block mb-1">Live Insights</span>
                 {insightFeed.map((item, i) => (
                     <motion.div
@@ -297,7 +290,7 @@ export function DashboardSection() {
 
     return (
         <section id="dashboard" ref={sectionRef} className="w-full py-24 px-6 md:px-12 lg:px-24">
-            {/* Header */}
+            
             <div className="mb-14">
                 <motion.span
                     className="text-xs font-medium tracking-widest text-primary uppercase mb-3 block"
@@ -320,14 +313,13 @@ export function DashboardSection() {
                 </motion.p>
             </div>
 
-            {/* Dashboard shell */}
-            <motion.div
+<motion.div
                 className="rounded-2xl border border-border/50 bg-card/20 backdrop-blur-sm overflow-hidden shadow-2xl"
                 initial={{ opacity: 0, y: 40 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
             >
-                {/* Window chrome */}
+                
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card/40">
                     <motion.span className="h-2.5 w-2.5 rounded-full bg-destructive/60" whileHover={{ scale: 1.3 }} />
                     <motion.span className="h-2.5 w-2.5 rounded-full bg-yellow-500/40" whileHover={{ scale: 1.3 }} />
@@ -336,7 +328,7 @@ export function DashboardSection() {
                 </div>
 
                 <div className="flex min-h-[520px]">
-                    {/* Sidebar */}
+                    
                     <aside className="w-48 flex-shrink-0 border-r border-border/50 p-4 space-y-1 relative">
                         <div className="px-3 py-2 mb-4">
                             <span className="text-xs text-muted-foreground/60 font-medium uppercase tracking-wider">Workspace</span>
@@ -362,8 +354,7 @@ export function DashboardSection() {
                             </motion.button>
                         ))}
 
-                        {/* Sidebar footer */}
-                        <div className="absolute bottom-0 left-0 w-48 border-t border-border/50 p-4">
+<div className="absolute bottom-0 left-0 w-48 border-t border-border/50 p-4">
                             <motion.div
                                 className="flex items-center gap-2.5"
                                 whileHover={{ x: 2 }}
@@ -377,8 +368,7 @@ export function DashboardSection() {
                         </div>
                     </aside>
 
-                    {/* Main panel */}
-                    <main className="flex-1 p-5 overflow-auto">
+<main className="flex-1 p-5 overflow-auto">
                         <div className="flex items-center justify-between mb-5">
                             <div>
                                 <h3 className="text-sm font-medium text-foreground capitalize">{activeTab}</h3>

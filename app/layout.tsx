@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,8 @@ export const metadata: Metadata = {
     "From raw data to decisive intelligence. Xai transforms chaotic data into structured insight and automated action.",
 };
 
+import { ClientLayout } from "@/components/layout/ClientLayout";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +23,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <ClientLayout>
+          {children}
+        </ClientLayout>
+      </body>
     </html>
   );
 }

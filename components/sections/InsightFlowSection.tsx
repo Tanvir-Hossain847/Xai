@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -69,7 +69,6 @@ const STAGES = [
     },
 ];
 
-/** Scrubber dot that the user drags along a timeline */
 function ScrubTimeline({
     activeStage,
     onScrub,
@@ -103,7 +102,7 @@ function ScrubTimeline({
 
     return (
         <div className="mb-12 px-1">
-            {/* Track */}
+            
             <div
                 ref={trackRef}
                 className="relative h-px bg-border/50 cursor-pointer select-none"
@@ -111,15 +110,14 @@ function ScrubTimeline({
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
             >
-                {/* Filled portion */}
+                
                 <motion.div
                     className="absolute top-0 left-0 h-full bg-primary/70 origin-left"
                     animate={{ scaleX: progress }}
                     transition={{ type: "spring", stiffness: 200, damping: 28 }}
                 />
 
-                {/* Stage tick marks */}
-                {STAGES.map((s, i) => {
+{STAGES.map((s, i) => {
                     const pos = i / (STAGES.length - 1);
                     return (
                         <button
@@ -151,14 +149,13 @@ function ScrubTimeline({
                     );
                 })}
 
-                {/* Draggable thumb */}
-                <motion.div
+<motion.div
                     className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-5 rounded-full bg-primary shadow-[0_0_12px_2px_color-mix(in_oklch,var(--color-primary)_40%,transparent)] border-2 border-background cursor-grab active:cursor-grabbing pointer-events-none"
                     animate={{ left: `${progress * 100}%` }}
                     transition={{ type: "spring", stiffness: 220, damping: 26 }}
                 />
             </div>
-            {/* Stage labels row */}
+            
             <div className="flex justify-between mt-8 pointer-events-none">
                 {STAGES.map((s, i) => (
                     <motion.span
@@ -175,7 +172,6 @@ function ScrubTimeline({
     );
 }
 
-/** Animated SVG waveform that draws itself */
 function WaveViz({ stage }: { stage: number }) {
     const pathRef = useRef<SVGPathElement | null>(null);
 
@@ -192,11 +188,10 @@ function WaveViz({ stage }: { stage: number }) {
 
     return (
         <div className="relative w-full max-w-md h-64 rounded-2xl border border-border/40 bg-card/30 backdrop-blur-sm flex items-center justify-center overflow-hidden">
-            {/* Gradient background that matches stage */}
+            
             <div className={`absolute inset-0 bg-gradient-to-br ${STAGES[stage].color} opacity-60`} />
 
-            {/* Grid */}
-            <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+<svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <pattern id={`grid-${stage}`} width="24" height="24" patternUnits="userSpaceOnUse">
                         <path d="M 24 0 L 0 0 0 24" fill="none" stroke="hsl(var(--border))" strokeWidth="0.5" />
@@ -205,8 +200,7 @@ function WaveViz({ stage }: { stage: number }) {
                 <rect width="100%" height="100%" fill={`url(#grid-${stage})`} />
             </svg>
 
-            {/* Signal line */}
-            <svg viewBox="0 0 160 56" className="w-[70%] overflow-visible relative z-10">
+<svg viewBox="0 0 160 56" className="w-[70%] overflow-visible relative z-10">
                 <path
                     ref={(el) => { pathRef.current = el; }}
                     d={STAGES[stage].path}
@@ -218,8 +212,7 @@ function WaveViz({ stage }: { stage: number }) {
                 />
             </svg>
 
-            {/* Hover-reactive shimmer */}
-            <motion.div
+<motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent -skew-x-12 pointer-events-none"
                 animate={{ x: ["-200%", "200%"] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatDelay: 1.5 }}
@@ -240,7 +233,7 @@ export function InsightFlowSection() {
             id="insight-flow"
             className="relative w-full py-32 px-6 md:px-12 lg:px-24"
         >
-            {/* Section header */}
+            
             <div className="mb-20 max-w-xl">
                 <motion.span
                     className="text-xs font-medium tracking-widest text-primary uppercase mb-3 block"
@@ -266,12 +259,10 @@ export function InsightFlowSection() {
                 </motion.p>
             </div>
 
-            {/* Drag scrub timeline */}
-            <ScrubTimeline activeStage={activeStage} onScrub={setActiveStage} />
+<ScrubTimeline activeStage={activeStage} onScrub={setActiveStage} />
 
-            {/* Main content grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-[360px]">
-                {/* Left: text */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-[360px]">
+                
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeStage}
@@ -281,7 +272,7 @@ export function InsightFlowSection() {
                         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
                         className="space-y-5"
                     >
-                        {/* Icon with hover spin */}
+                        
                         <motion.div
                             className="opacity-90"
                             whileHover={{ rotate: [0, -8, 8, -4, 0], transition: { duration: 0.5 } }}
@@ -296,8 +287,7 @@ export function InsightFlowSection() {
                             {STAGES[activeStage].body}
                         </p>
 
-                        {/* Animated progress pills — all primary */}
-                        <div className="flex items-center gap-3 pt-2">
+<div className="flex items-center gap-3 pt-2">
                             {STAGES.map((_, i) => (
                                 <motion.button
                                     key={i}
@@ -322,8 +312,7 @@ export function InsightFlowSection() {
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Right: animated wave visualization */}
-                <AnimatePresence mode="wait">
+<AnimatePresence mode="wait">
                     <motion.div
                         key={`viz-${activeStage}`}
                         className="relative flex items-center justify-center"
@@ -337,8 +326,7 @@ export function InsightFlowSection() {
                 </AnimatePresence>
             </div>
 
-            {/* Arrow nav */}
-            <div className="flex gap-3 mt-12">
+<div className="flex gap-3 mt-12">
                 <motion.button
                     onClick={() => setActiveStage((s) => Math.max(0, s - 1))}
                     disabled={activeStage === 0}

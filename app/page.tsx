@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/layout/Navbar";
+﻿import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { InsightFlowSection } from "@/components/sections/InsightFlowSection";
@@ -11,17 +11,14 @@ export default function Home() {
       <Navbar />
 
       <main>
-        {/* 1 — Hero: Data → Intelligence */}
+        
         <HeroSection />
 
-        {/* 2 — Insight Flow: How Intelligence Forms */}
-        <InsightFlowSection />
+<InsightFlowSection />
 
-        {/* 3 — Dashboard: Product Reality */}
-        <DashboardSection />
+<DashboardSection />
 
-        {/* 4 — Constellation: WOW Moment */}
-        <ConstellationSection />
+<ConstellationSection />
       </main>
 
       <Footer />

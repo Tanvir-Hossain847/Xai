@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
@@ -27,7 +27,6 @@ function fadeUpProps(delay: number) {
     } as const;
 }
 
-/** Magnetic button — slightly pulls toward cursor on hover */
 function MagneticButton({
     children,
     href,
@@ -40,8 +39,8 @@ function MagneticButton({
     const ref = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const y = useMotionValue(0);
-    const sx = useSpring(x, { stiffness: 280, damping: 18 });
-    const sy = useSpring(y, { stiffness: 280, damping: 18 });
+    const sx = useSpring(x, { stiffness: 380, damping: 28 });
+    const sy = useSpring(y, { stiffness: 380, damping: 28 });
 
     const onMove = (e: React.MouseEvent) => {
         const el = ref.current;
@@ -68,13 +67,10 @@ function MagneticButton({
     );
 }
 
-
-
 export function HeroSection() {
     const sectionRef = useRef<HTMLDivElement>(null);
 
-    // Mouse → rotation for 3-D tilt on the content block
-    const mouseX = useMotionValue(0);
+const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), { stiffness: 140, damping: 22 });
     const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), { stiffness: 140, damping: 22 });
@@ -87,8 +83,7 @@ export function HeroSection() {
     };
     const onMouseLeave = () => { mouseX.set(0); mouseY.set(0); };
 
-    // Scroll-based fade for the particle bg
-    const scrollY = useMotionValue(0);
+const scrollY = useMotionValue(0);
     const bgOpacity = useTransform(scrollY, [0, 600], [1, 0]);
     useEffect(() => {
         const update = () => scrollY.set(window.scrollY);
@@ -104,19 +99,15 @@ export function HeroSection() {
             className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden"
         >
 
-
-            {/* Three.js particle bg — fades on scroll */}
-            <motion.div className="absolute inset-0 z-0 will-change-transform" style={{ opacity: bgOpacity }}>
+<motion.div className="absolute inset-0 z-0 will-change-transform" style={{ opacity: bgOpacity }}>
                 <Suspense fallback={null}>
                     <ParticleCloud scrollProgress={0} />
                 </Suspense>
             </motion.div>
 
-            {/* Radial vignette */}
-            <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,transparent_30%,hsl(var(--background))_100%)]" />
+<div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,transparent_30%,hsl(var(--background))_100%)]" />
 
-            {/* 3-D tilt wrapper — perspective gives depth */}
-            <motion.div
+<motion.div
                 className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto px-6"
                 style={{
                     rotateX,
@@ -125,30 +116,28 @@ export function HeroSection() {
                     perspective: 900,
                 }}
             >
-                {/* Eyebrow */}
+                
                 <motion.div
                     className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
                     {...fadeUpProps(0.3)}
                 >
                     <motion.span
-                        className="h-1.5 w-1.5 rounded-full bg-primary"
+                        className="h-2 w-2 rounded-full bg-primary"
                         animate={{ scale: [1, 1.5, 1], opacity: [0.7, 1, 0.7] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     />
                     Intelligence Infrastructure · Now in Beta
                 </motion.div>
 
-                {/* Headline */}
-                <AnimatedText
+<AnimatedText
                     text="From raw data to decisive intelligence."
                     as="h1"
                     delay={0.5}
                     stagger={0.07}
-                    className="text-4xl md:text-6xl lg:text-7xl font-semibold leading-[1.1] tracking-tight text-foreground"
+                    className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.1] tracking-tight text-foreground"
                 />
 
-                {/* Sub-copy */}
-                <motion.p
+<motion.p
                     className="mt-6 max-w-xl text-base md:text-lg text-muted-foreground leading-relaxed"
                     {...fadeUpProps(1.1)}
                 >
@@ -156,8 +145,7 @@ export function HeroSection() {
                     orchestrates it into automated decisions — without the noise.
                 </motion.p>
 
-                {/* CTA row with magnetic buttons */}
-                <motion.div
+<motion.div
                     className="mt-10 flex flex-wrap items-center justify-center gap-4"
                     {...fadeUpProps(1.4)}
                 >
@@ -169,8 +157,7 @@ export function HeroSection() {
                     </MagneticButton>
                 </motion.div>
 
-                {/* Live metrics strip — appear after headline settles */}
-                <motion.div
+<motion.div
                     className="mt-14 flex items-center gap-8 text-xs text-muted-foreground/60"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -191,8 +178,7 @@ export function HeroSection() {
                 </motion.div>
             </motion.div>
 
-            {/* Scroll cue */}
-            <motion.div
+<motion.div
                 className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

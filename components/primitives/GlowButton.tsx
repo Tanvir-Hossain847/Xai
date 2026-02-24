@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 
@@ -10,10 +10,6 @@ interface GlowButtonProps {
     variant?: "primary" | "outline";
 }
 
-/**
- * A restrained button with subtle glow on hover.
- * Uses existing theme primary color — no hardcoded hues.
- */
 export function GlowButton({
     children,
     onClick,

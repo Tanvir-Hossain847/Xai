@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -10,10 +10,6 @@ const navLinks = [
     { label: "Constellation", href: "#constellation" },
 ];
 
-/**
- * Fixed navbar — appears with a slight delay after load.
- * Glassmorphic background on scroll.
- */
 export function Navbar() {
     const [scrolled, setScrolled] = useState(false);
 
@@ -33,10 +29,10 @@ export function Navbar() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number], delay: 0.5 }}
         >
-            {/* Wordmark */}
+
             <a href="#" className="flex items-center gap-2 group">
                 <span className="relative flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 bg-primary/10">
-                    {/* Minimal geometric mark — using var(--color-primary) so oklch values resolve */}
+
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                         <circle cx="7" cy="7" r="2.5" style={{ fill: "var(--color-primary)" }} />
                         <circle cx="7" cy="7" r="5.5" style={{ stroke: "var(--color-primary)" }} strokeWidth="0.75" strokeOpacity="0.4" fill="none" />
@@ -49,7 +45,6 @@ export function Navbar() {
                 </span>
             </a>
 
-            {/* Nav links */}
             <nav className="hidden md:flex items-center gap-8 ml-20">
                 {navLinks.map((link) => (
                     <a
@@ -62,7 +57,6 @@ export function Navbar() {
                 ))}
             </nav>
 
-            {/* CTA */}
             <GlowButton href="#dashboard" variant="outline">
                 Request Access
             </GlowButton>
