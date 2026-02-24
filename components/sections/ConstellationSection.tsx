@@ -1,117 +1,238 @@
 "use client";
 
-import { useRef, useMemo, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import { motion, useSpring } from "framer-motion";
 import { AnimatedText } from "@/components/primitives/AnimatedText";
 
-// Node positions for the "chaos" state (random floating cluster)
-function buildChaosNodes(count: number, w: number, h: number) {
-    // Use deterministic pseudo-random so nodes don't jump on re-render
-    return Array.from({ length: count }, (_, i) => ({
-        id: i,
-        x: 100 + ((i * 137.508 + 31) % (w - 200)),
-        y: 80 + ((i * 97.3 + 17) % (h - 160)),
-    }));
+// ─── 28-node pipeline layout ──────────────────────────────────────────────────
+// 6 stages: Sources(5) → Filter(4) → Enrich(5) → Analyze(5) → Route(5) → Decide(4)
+const PIPELINE_LAYOUT = (w: number, h: number) => [
+    // Stage 0 — Sources (5 nodes)
+    { id: 0, x: w * 0.06, y: h * 0.14 },
+    { id: 1, x: w * 0.06, y: h * 0.32 },
+    { id: 2, x: w * 0.06, y: h * 0.50 },
+    { id: 3, x: w * 0.06, y: h * 0.68 },
+    { id: 4, x: w * 0.06, y: h * 0.86 },
+    // Stage 1 — Filter (4 nodes)
+    { id: 5, x: w * 0.22, y: h * 0.22 },
+    { id: 6, x: w * 0.22, y: h * 0.40 },
+    { id: 7, x: w * 0.22, y: h * 0.60 },
+    { id: 8, x: w * 0.22, y: h * 0.78 },
+    // Stage 2 — Enrich (5 nodes)
+    { id: 9, x: w * 0.38, y: h * 0.18 },
+    { id: 10, x: w * 0.38, y: h * 0.34 },
+    { id: 11, x: w * 0.38, y: h * 0.50 },
+    { id: 12, x: w * 0.38, y: h * 0.66 },
+    { id: 13, x: w * 0.38, y: h * 0.82 },
+    // Stage 3 — Analyze (5 nodes)
+    { id: 14, x: w * 0.54, y: h * 0.22 },
+    { id: 15, x: w * 0.54, y: h * 0.36 },
+    { id: 16, x: w * 0.54, y: h * 0.50 },
+    { id: 17, x: w * 0.54, y: h * 0.64 },
+    { id: 18, x: w * 0.54, y: h * 0.78 },
+    // Stage 4 — Route (5 nodes)
+    { id: 19, x: w * 0.70, y: h * 0.26 },
+    { id: 20, x: w * 0.70, y: h * 0.40 },
+    { id: 21, x: w * 0.70, y: h * 0.54 },
+    { id: 22, x: w * 0.70, y: h * 0.68 },
+    { id: 23, x: w * 0.70, y: h * 0.82 },
+    // Stage 5 — Decide (4 nodes)
+    { id: 24, x: w * 0.86, y: h * 0.30 },
+    { id: 25, x: w * 0.86, y: h * 0.46 },
+    { id: 26, x: w * 0.86, y: h * 0.62 },
+    // Final hub
+    { id: 27, x: w * 0.96, y: h * 0.50 },
+];
+
+const EDGES = [
+    // Sources → Filter
+    [0, 5], [0, 6], [1, 5], [1, 6], [2, 6], [2, 7], [3, 7], [3, 8], [4, 7], [4, 8],
+    // Filter → Enrich
+    [5, 9], [5, 10], [6, 10], [6, 11], [7, 11], [7, 12], [8, 12], [8, 13],
+    // Enrich → Analyze
+    [9, 14], [10, 14], [10, 15], [11, 15], [11, 16], [12, 16], [12, 17], [13, 17], [13, 18],
+    // Analyze → Route
+    [14, 19], [15, 19], [15, 20], [16, 20], [16, 21], [17, 21], [17, 22], [18, 22], [18, 23],
+    // Route → Decide
+    [19, 24], [20, 24], [20, 25], [21, 25], [21, 26], [22, 26], [23, 26],
+    // Decide → Hub
+    [24, 27], [25, 27], [26, 27],
+];
+
+const NODE_COUNT = 30;
+const STAGE_LABELS = ["Sources", "Filter", "Enrich", "Analyze", "Route", "Decide"];
+
+// Seeded pseudo-random (deterministic, Mulberry32)
+function mulberry32(seed: number) {
+    let s = seed;
+    return () => {
+        s |= 0; s = s + 0x6d2b79f5 | 0;
+        let t = Math.imul(s ^ s >>> 15, 1 | s);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
 }
 
-// Pipeline DAG layout — 5 stages
-const PIPELINE_LAYOUT = (w: number, h: number) => [
-    // Stage 0: sources (left)
-    { id: 0, x: w * 0.12, y: h * 0.25 },
-    { id: 1, x: w * 0.12, y: h * 0.5 },
-    { id: 2, x: w * 0.12, y: h * 0.75 },
-    // Stage 1: ingestion
-    { id: 3, x: w * 0.33, y: h * 0.35 },
-    { id: 4, x: w * 0.33, y: h * 0.65 },
-    // Stage 2: processing
-    { id: 5, x: w * 0.54, y: h * 0.3 },
-    { id: 6, x: w * 0.54, y: h * 0.5 },
-    { id: 7, x: w * 0.54, y: h * 0.7 },
-    // Stage 3: outputs
-    { id: 8, x: w * 0.75, y: h * 0.38 },
-    { id: 9, x: w * 0.75, y: h * 0.62 },
-    // Final: decision
-    { id: 10, x: w * 0.9, y: h * 0.5 },
-];
+// Per-node drift metadata — unique speed, phase, amplitude
+function buildChaosNodes(count: number, w: number, h: number) {
+    const rand = mulberry32(0xdeadbeef);
+    // Push nodes into 9 zones (3×3 grid) with random scatter inside each zone
+    const ZONES = [
+        [0, 0], [0.33, 0], [0.66, 0],   // top row
+        [0, 0.33], [0.33, 0.33], [0.66, 0.33], // middle
+        [0, 0.66], [0.33, 0.66], [0.66, 0.66], // bottom
+    ];
+    return Array.from({ length: count }, (_, i) => {
+        const [zx, zy] = ZONES[i % ZONES.length];
+        const jx = (rand() - 0.5) * 0.28;  // jitter within zone
+        const jy = (rand() - 0.5) * 0.28;
+        const baseX = (zx + 0.165 + jx) * (w - 60) + 30;
+        const baseY = (zy + 0.165 + jy) * (h - 60) + 30;
+        return {
+            id: i,
+            x: Math.min(w - 30, Math.max(30, baseX)),
+            y: Math.min(h - 30, Math.max(30, baseY)),
+            // unique drift params
+            driftAmpX: 14 + rand() * 22,
+            driftAmpY: 12 + rand() * 20,
+            driftSpeedX: 0.28 + rand() * 0.55,
+            driftSpeedY: 0.22 + rand() * 0.48,
+            driftPhaseX: rand() * Math.PI * 2,
+            driftPhaseY: rand() * Math.PI * 2,
+        };
+    });
+}
 
-// Edges in the pipeline DAG
-const EDGES = [
-    [0, 3], [1, 3], [1, 4], [2, 4],
-    [3, 5], [3, 6], [4, 6], [4, 7],
-    [5, 8], [6, 8], [6, 9], [7, 9],
-    [8, 10], [9, 10],
-];
+function DragSlider({ progress, onChange }: { progress: number; onChange: (v: number) => void }) {
+    const trackRef = useRef<HTMLDivElement>(null);
+    const dragging = useRef(false);
 
-const NODE_COUNT = 11;
-const STAGE_LABELS = ["Sources", "Ingest", "Process", "Route", "Decide"];
+    const calc = useCallback((clientX: number) => {
+        const el = trackRef.current;
+        if (!el) return;
+        const { left, width } = el.getBoundingClientRect();
+        onChange(Math.min(1, Math.max(0, (clientX - left) / width)));
+    }, [onChange]);
 
-const STEPS = [
-    { label: "Chaos", description: "Raw unstructured data nodes" },
-    { label: "Clustering", description: "Nodes grouping by signal type" },
-    { label: "Organizing", description: "Pipeline stages forming" },
-    { label: "Orchestrated", description: "Intelligence pipeline active" },
-];
+    return (
+        <div className="flex items-center gap-4">
+            <span className="text-xs font-mono text-muted-foreground/50 w-12">chaos</span>
+            <div
+                ref={trackRef}
+                className="relative flex-1 h-1.5 rounded-full bg-border/40 cursor-pointer select-none"
+                onPointerDown={(e) => {
+                    dragging.current = true;
+                    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                    calc(e.clientX);
+                }}
+                onPointerMove={(e) => { if (dragging.current) calc(e.clientX); }}
+                onPointerUp={() => { dragging.current = false; }}
+            >
+                <div
+                    className="absolute top-0 left-0 h-full rounded-full bg-primary/60"
+                    style={{ width: `${progress * 100}%` }}
+                />
+                <motion.div
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-5 rounded-full bg-primary border-2 border-background cursor-grab active:cursor-grabbing pointer-events-none shadow-[0_0_14px_2px_color-mix(in_oklch,var(--color-primary)_50%,transparent)]"
+                    style={{ left: `${progress * 100}%` }}
+                />
+            </div>
+            <span className="text-xs font-mono text-primary/70 w-24">orchestrated</span>
+        </div>
+    );
+}
 
 export function ConstellationSection() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [dims, setDims] = useState({ w: 800, h: 400 });
-    // progress driven by interactive step (0–3 maps to 0–1)
-    const [step, setStep] = useState(0);
-    const progress = step / (STEPS.length - 1);
+    const [dims, setDims] = useState({ w: 900, h: 420 });
+    const [progress, setProgress] = useState(0);
+    const mouse = useRef({ x: -9999, y: -9999 });
+    const timeRef = useRef(0);
+    const lastFrameRef = useRef(performance.now());
+    const [, setTick] = useState(0);
 
-    // Measure container
+    const springProgress = useSpring(0, { stiffness: 80, damping: 17 });
+
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
-        const observer = new ResizeObserver(([entry]) => {
-            setDims({ w: entry.contentRect.width, h: entry.contentRect.height });
-        });
-        observer.observe(el);
+        const ro = new ResizeObserver(([e]) => setDims({ w: e.contentRect.width, h: e.contentRect.height }));
+        ro.observe(el);
         setDims({ w: el.clientWidth, h: el.clientHeight });
-        return () => observer.disconnect();
+        return () => ro.disconnect();
     }, []);
 
-    // Stable chaos positions (deterministic)
-    const chaosNodes = useMemo(
-        () => buildChaosNodes(NODE_COUNT, dims.w, dims.h),
-        [dims.w, dims.h]
-    );
+    useEffect(() => { springProgress.set(progress); }, [progress, springProgress]);
 
-    const pipelineNodes = useMemo(
-        () => PIPELINE_LAYOUT(dims.w, dims.h),
-        [dims.w, dims.h]
-    );
+    useEffect(() => {
+        let raf: number;
+        const loop = (now: number) => {
+            const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
+            timeRef.current += dt;
+            lastFrameRef.current = now;
+            setTick((t) => t + 1);
+            raf = requestAnimationFrame(loop);
+        };
+        raf = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(raf);
+    }, []);
 
-    // Interpolate between chaos and pipeline positions based on progress
-    const nodes = useMemo(() =>
-        chaosNodes.map((chaos, i) => {
+    const chaosNodes = useMemo(() => buildChaosNodes(NODE_COUNT, dims.w, dims.h), [dims.w, dims.h]);
+    const pipelineNodes = useMemo(() => PIPELINE_LAYOUT(dims.w, dims.h), [dims.w, dims.h]);
+
+    const sp = springProgress.get();
+
+    // Interpolate chaos→pipeline + living drift in chaos mode + mouse repulsion
+    const nodes = useMemo(() => {
+        const REPEL_RADIUS = 80;
+        const REPEL_FORCE = 26;
+        const t = timeRef.current;
+        return chaosNodes.map((chaos, i) => {
             const target = pipelineNodes[i] || chaos;
-            return {
-                id: i,
-                x: chaos.x + (target.x - chaos.x) * progress,
-                y: chaos.y + (target.y - chaos.y) * progress,
-            };
-        }),
-        [chaosNodes, pipelineNodes, progress]
-    );
+            const ease = sp < 0.5 ? 2 * sp * sp : 1 - Math.pow(-2 * sp + 2, 2) / 2;
 
-    // Edge opacity: edges only visible when organized
-    const edgeOpacity = Math.max(0, (progress - 0.5) * 2);
+            // Drift fades to 0 as nodes organize (scale by 1-ease²)
+            const driftScale = 1 - ease * ease;
+            const driftX = Math.sin(t * chaos.driftSpeedX + chaos.driftPhaseX) * chaos.driftAmpX * driftScale;
+            const driftY = Math.cos(t * chaos.driftSpeedY + chaos.driftPhaseY) * chaos.driftAmpY * driftScale;
 
-    const currentStepInfo = STEPS[step];
+            let x = chaos.x + driftX + (target.x - chaos.x) * ease;
+            let y = chaos.y + driftY + (target.y - chaos.y) * ease;
+
+            // Mouse repulsion
+            const dx = x - mouse.current.x;
+            const dy = y - mouse.current.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < REPEL_RADIUS && dist > 0) {
+                const f = (1 - dist / REPEL_RADIUS) * REPEL_FORCE;
+                x += (dx / dist) * f;
+                y += (dy / dist) * f;
+            }
+            return { id: i, x, y };
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chaosNodes, pipelineNodes, sp, timeRef.current]);
+
+    const edgeOpacity = Math.max(0, (sp - 0.45) * 2.2);
+    const labelOpacity = Math.max(0, (sp - 0.55) * 2.5);
+    const statusLabel =
+        progress < 0.1 ? "chaos" :
+            progress < 0.35 ? "filtering…" :
+                progress < 0.6 ? "enriching…" :
+                    progress < 0.85 ? "analyzing…" : "orchestrated";
+
+    // Stage-based node color
+    const stageOf = (i: number) =>
+        i <= 4 ? 0 : i <= 8 ? 1 : i <= 13 ? 2 : i <= 18 ? 3 : i <= 23 ? 4 : i < 27 ? 5 : 6;
+
+    const stageOpacity = [0.55, 0.65, 0.72, 0.80, 0.88, 0.95, 1.0];
 
     return (
-        <section
-            id="constellation"
-            className="w-full py-24 px-6 md:px-12 lg:px-24"
-        >
-            {/* Section header */}
+        <section id="constellation" className="w-full py-24 px-6 md:px-12 lg:px-24">
             <div className="mb-12">
                 <motion.span
                     className="text-xs font-medium tracking-widest text-primary uppercase mb-3 block"
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
+                    initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
                 >
                     Orchestration
                 </motion.span>
@@ -121,90 +242,58 @@ export function ConstellationSection() {
                     className="text-3xl md:text-5xl font-semibold tracking-tight text-foreground"
                 />
                 <motion.p
-                    className="mt-4 text-muted-foreground max-w-md"
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    className="mt-4 text-muted-foreground max-w-xl"
+                    initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                     transition={{ delay: 0.3 }}
                 >
-                    Click through the steps to watch unstructured data nodes
-                    self-organize into a deterministic automation pipeline.
+                    Drag the slider to watch 28 unstructured data nodes self-organize
+                    into a 6-stage live automation pipeline. Hover the canvas to repel nodes.
                 </motion.p>
-            </div>
-
-            {/* Interactive step controls */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-                {STEPS.map((s, i) => (
-                    <motion.button
-                        key={s.label}
-                        onClick={() => setStep(i)}
-                        className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer border ${step === i
-                            ? "bg-primary/15 border-primary/50 text-foreground"
-                            : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground/80 bg-card/20"
-                            }`}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                    >
-                        <span className="mr-2 text-primary/60 font-mono text-xs">0{i + 1}</span>
-                        {s.label}
-                        {step === i && (
-                            <motion.div
-                                className="absolute inset-0 rounded-lg bg-primary/5 border border-primary/20"
-                                layoutId="step-highlight"
-                                transition={{ duration: 0.3 }}
-                            />
-                        )}
-                    </motion.button>
-                ))}
-
-                {/* Quick description */}
-                <motion.span
-                    key={step}
-                    className="ml-2 text-xs text-muted-foreground/60 font-mono"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    — {currentStepInfo.description}
-                </motion.span>
             </div>
 
             {/* Canvas */}
             <motion.div
                 ref={containerRef}
-                className="relative w-full h-[420px] md:h-[480px] rounded-2xl border border-border/50 bg-card/20 backdrop-blur-sm overflow-hidden"
+                className="relative w-full h-[460px] md:h-[520px] rounded-2xl border border-border/50 bg-card/20 backdrop-blur-sm overflow-hidden"
                 initial={{ opacity: 0, scale: 0.98 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, amount: 0.2 }}
+                viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+                onMouseMove={(e) => {
+                    const rect = containerRef.current?.getBoundingClientRect();
+                    if (!rect) return;
+                    mouse.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                }}
+                onMouseLeave={() => { mouse.current = { x: -9999, y: -9999 }; }}
             >
-                {/* Background subtle grid */}
-                <svg className="absolute inset-0 w-full h-full opacity-[0.04]">
+                {/* Grid bg */}
+                <svg className="absolute inset-0 w-full h-full opacity-[0.035]">
                     <defs>
-                        <pattern id="const-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="hsl(var(--foreground))" strokeWidth="0.5" />
+                        <pattern id="cg2" width="28" height="28" patternUnits="userSpaceOnUse">
+                            <path d="M 28 0 L 0 0 0 28" fill="none" stroke="hsl(var(--foreground))" strokeWidth="0.5" />
                         </pattern>
                     </defs>
-                    <rect width="100%" height="100%" fill="url(#const-grid)" />
+                    <rect width="100%" height="100%" fill="url(#cg2)" />
                 </svg>
 
-                {/* Stage labels — appear as nodes organize */}
-                {STAGE_LABELS.map((label, i) => {
-                    const x = (dims.w * (i * 0.195 + 0.1));
-                    return (
-                        <motion.span
-                            key={label}
-                            className="absolute text-xs font-mono text-primary/70 pointer-events-none select-none"
-                            style={{ left: x, top: 12 }}
-                            animate={{ opacity: Math.max(0, (progress - 0.55) * 2.5) }}
-                        >
-                            {label}
-                        </motion.span>
-                    );
-                })}
+                {/* Stage labels */}
+                {STAGE_LABELS.map((label, i) => (
+                    <div
+                        key={label}
+                        className="absolute text-xs font-mono text-primary/70 pointer-events-none select-none"
+                        style={{
+                            left: dims.w * (i * 0.162 + 0.05),
+                            top: 10,
+                            opacity: labelOpacity,
+                            transition: "opacity 0.3s",
+                        }}
+                    >
+                        {label}
+                    </div>
+                ))}
 
                 <svg className="absolute inset-0 w-full h-full overflow-visible">
-                    {/* Pipeline edges */}
+                    {/* Edges */}
                     {EDGES.map(([from, to], i) => {
                         const a = nodes[from];
                         const b = nodes[to];
@@ -216,8 +305,8 @@ export function ConstellationSection() {
                                 d={`M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`}
                                 fill="none"
                                 style={{ stroke: "var(--color-primary)" }}
-                                strokeWidth="1"
-                                strokeOpacity={edgeOpacity * 0.5}
+                                strokeWidth="0.8"
+                                strokeOpacity={edgeOpacity * 0.55}
                                 strokeLinecap="round"
                             />
                         );
@@ -225,80 +314,72 @@ export function ConstellationSection() {
 
                     {/* Nodes */}
                     {nodes.map((node, i) => {
-                        const isDecision = i === 10;
+                        const isHub = i === 27;
+                        const stage = stageOf(i);
+                        const r = isHub ? 9 : 4.5;
+                        const outerR = isHub ? 20 : 11;
+                        const ao = stageOpacity[stage];
                         return (
                             <g key={node.id}>
-                                {/* Outer ring — appears when organized */}
+                                {/* Outer ring */}
                                 <circle
-                                    cx={node.x}
-                                    cy={node.y}
-                                    r={isDecision ? 22 : 14}
+                                    cx={node.x} cy={node.y} r={outerR}
                                     fill="none"
                                     style={{ stroke: "var(--color-primary)" }}
-                                    strokeWidth="0.75"
-                                    strokeOpacity={edgeOpacity * 0.3}
+                                    strokeWidth={isHub ? 1 : 0.7}
+                                    strokeOpacity={edgeOpacity * 0.28}
                                 />
                                 {/* Core */}
                                 <circle
-                                    cx={node.x}
-                                    cy={node.y}
-                                    r={isDecision ? 8 : 5}
+                                    cx={node.x} cy={node.y} r={r}
                                     style={{
-                                        fill: isDecision ? "var(--color-primary)" : "var(--color-card)",
+                                        fill: isHub ? "var(--color-primary)" : "var(--color-card)",
                                         stroke: "var(--color-primary)",
                                     }}
-                                    strokeWidth={isDecision ? 0 : 1.2}
-                                    fillOpacity={isDecision ? 0.9 : 0.7}
-                                    strokeOpacity={0.7}
+                                    strokeWidth={isHub ? 0 : 1.2}
+                                    fillOpacity={isHub ? 0.95 : ao * 0.7}
+                                    strokeOpacity={ao * 0.85}
                                 />
+                                {/* Hub glow */}
+                                {isHub && (
+                                    <circle
+                                        cx={node.x} cy={node.y} r={r + 8}
+                                        style={{ fill: "var(--color-primary)" }}
+                                        fillOpacity={0.15 * sp}
+                                    />
+                                )}
                             </g>
                         );
                     })}
                 </svg>
 
-                {/* Progress bar at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-border/30">
-                    <motion.div
-                        className="h-full bg-primary/60"
-                        animate={{ width: `${progress * 100}%` }}
-                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                    />
-                </div>
-
-                {/* Status label */}
-                <div className="absolute bottom-4 right-4 text-right pointer-events-none">
+                {/* Status */}
+                <div className="absolute bottom-4 right-4">
                     <motion.span
-                        key={step}
-                        className="text-xs font-mono text-primary/50"
+                        key={statusLabel}
+                        className="text-xs font-mono text-primary/60"
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
                     >
-                        {currentStepInfo.label.toLowerCase()}
+                        {statusLabel}
                     </motion.span>
                 </div>
 
-                {/* Prev / Next navigation inside canvas */}
-                <div className="absolute bottom-3 left-4 flex gap-2">
-                    <motion.button
-                        onClick={() => setStep((s) => Math.max(0, s - 1))}
-                        disabled={step === 0}
-                        className="h-7 w-7 rounded-full border border-border/50 flex items-center justify-center text-muted-foreground/70 hover:border-primary/40 hover:text-foreground transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer text-xs"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        ←
-                    </motion.button>
-                    <motion.button
-                        onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
-                        disabled={step === STEPS.length - 1}
-                        className="h-7 w-7 rounded-full border border-primary/40 bg-primary/10 flex items-center justify-center text-foreground hover:bg-primary/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer text-xs"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        →
-                    </motion.button>
+                {/* Node count badge */}
+                <div className="absolute top-4 right-4 text-xs font-mono text-muted-foreground/40">
+                    {NODE_COUNT} nodes · {EDGES.length} edges
+                </div>
+
+                {/* Progress bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-border/20">
+                    <div className="h-full bg-primary/50" style={{ width: `${sp * 100}%` }} />
                 </div>
             </motion.div>
+
+            {/* Drag slider */}
+            <div className="mt-6 px-2">
+                <DragSlider progress={progress} onChange={setProgress} />
+            </div>
         </section>
     );
 }

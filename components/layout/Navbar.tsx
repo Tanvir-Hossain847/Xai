@@ -50,7 +50,7 @@ export function Navbar() {
             </a>
 
             {/* Nav links */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden md:flex items-center gap-8 ml-20">
                 {navLinks.map((link) => (
                     <a
                         key={link.label}
