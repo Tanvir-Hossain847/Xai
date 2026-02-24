@@ -39,8 +39,8 @@ function MagneticButton({
     const ref = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const y = useMotionValue(0);
-    const sx = useSpring(x, { stiffness: 380, damping: 28 });
-    const sy = useSpring(y, { stiffness: 380, damping: 28 });
+    const sx = useSpring(x, { stiffness: 220, damping: 28 });
+    const sy = useSpring(y, { stiffness: 220, damping: 28 });
 
     const onMove = (e: React.MouseEvent) => {
         const el = ref.current;
