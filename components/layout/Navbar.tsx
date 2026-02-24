@@ -36,12 +36,12 @@ export function Navbar() {
             {/* Wordmark */}
             <a href="#" className="flex items-center gap-2 group">
                 <span className="relative flex h-7 w-7 items-center justify-center rounded-md border border-primary/30 bg-primary/10">
-                    {/* Minimal geometric mark */}
+                    {/* Minimal geometric mark — using var(--color-primary) so oklch values resolve */}
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <circle cx="7" cy="7" r="2.5" fill="hsl(var(--primary))" />
-                        <circle cx="7" cy="7" r="5.5" stroke="hsl(var(--primary))" strokeWidth="0.75" strokeOpacity="0.4" />
-                        <line x1="7" y1="1" x2="7" y2="13" stroke="hsl(var(--primary))" strokeWidth="0.5" strokeOpacity="0.3" />
-                        <line x1="1" y1="7" x2="13" y2="7" stroke="hsl(var(--primary))" strokeWidth="0.5" strokeOpacity="0.3" />
+                        <circle cx="7" cy="7" r="2.5" style={{ fill: "var(--color-primary)" }} />
+                        <circle cx="7" cy="7" r="5.5" style={{ stroke: "var(--color-primary)" }} strokeWidth="0.75" strokeOpacity="0.4" fill="none" />
+                        <line x1="7" y1="1" x2="7" y2="13" style={{ stroke: "var(--color-primary)" }} strokeWidth="0.5" strokeOpacity="0.3" />
+                        <line x1="1" y1="7" x2="13" y2="7" style={{ stroke: "var(--color-primary)" }} strokeWidth="0.5" strokeOpacity="0.3" />
                     </svg>
                 </span>
                 <span className="text-base font-semibold tracking-tight text-foreground">

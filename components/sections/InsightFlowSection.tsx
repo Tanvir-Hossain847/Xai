@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
-import ScrollTrigger from "gsap/ScrollTrigger";
 import { AnimatedText } from "@/components/primitives/AnimatedText";
 
-gsap.registerPlugin(ScrollTrigger);
+// Primary color as CSS var (works with oklch theme)
+const PRIMARY = "var(--color-primary)";
 
 const STAGES = [
     {
@@ -16,8 +16,8 @@ const STAGES = [
         body: "Xai ingests structured and unstructured data from APIs, databases, and event streams — without requiring schema definitions. Raw input, accepted.",
         icon: (
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="22" stroke="hsl(var(--primary))" strokeWidth="1" strokeOpacity="0.3" />
-                <circle cx="24" cy="24" r="5" fill="hsl(var(--primary))" fillOpacity="0.8" />
+                <circle cx="24" cy="24" r="22" style={{ stroke: PRIMARY }} strokeWidth="1" strokeOpacity="0.3" />
+                <circle cx="24" cy="24" r="5" style={{ fill: PRIMARY }} fillOpacity="0.8" />
                 {[0, 60, 120, 180, 240, 300].map((deg, i) => {
                     const rad = (deg * Math.PI) / 180;
                     const x = 24 + 14 * Math.cos(rad);
@@ -26,16 +26,15 @@ const STAGES = [
                         <g key={i}>
                             <line
                                 x1="24" y1="24" x2={x} y2={y}
-                                stroke="hsl(var(--primary))" strokeWidth="0.75" strokeOpacity="0.5"
+                                style={{ stroke: PRIMARY }} strokeWidth="0.75" strokeOpacity="0.5"
                                 strokeDasharray="2 3"
                             />
-                            <circle cx={x} cy={y} r="2.5" fill="hsl(var(--primary))" fillOpacity="0.5" />
+                            <circle cx={x} cy={y} r="2.5" style={{ fill: PRIMARY }} fillOpacity="0.5" />
                         </g>
                     );
                 })}
             </svg>
         ),
-        // SVG path for the animated line
         path: "M 0,48 C 30,48 50,24 80,24 C 110,24 130,48 160,48",
     },
     {
@@ -45,13 +44,11 @@ const STAGES = [
         body: "Pattern recognition, anomaly detection, and causal models run in parallel. The system builds a semantic graph of your data as it flows through.",
         icon: (
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                {/* Neural-style node grid */}
                 {[[8, 8], [24, 8], [40, 8], [8, 24], [24, 24], [40, 24], [8, 40], [24, 40], [40, 40]].map(([cx, cy], i) => (
-                    <circle key={i} cx={cx} cy={cy} r="3" fill="hsl(var(--primary))" fillOpacity={i === 4 ? 1 : 0.35} />
+                    <circle key={i} cx={cx} cy={cy} r="3" style={{ fill: PRIMARY }} fillOpacity={i === 4 ? 1 : 0.35} />
                 ))}
-                {/* connections */}
                 {[[8, 8, 24, 24], [40, 8, 24, 24], [8, 24, 24, 24], [40, 24, 24, 24], [8, 40, 24, 24], [40, 40, 24, 24], [24, 8, 24, 24], [24, 40, 24, 24]].map(([x1, y1, x2, y2], i) => (
-                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="hsl(var(--primary))" strokeWidth="0.8" strokeOpacity="0.3" />
+                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} style={{ stroke: PRIMARY }} strokeWidth="0.8" strokeOpacity="0.3" />
                 ))}
             </svg>
         ),
@@ -64,9 +61,9 @@ const STAGES = [
         body: "From the analyzed graph, Xai surfaces structured insights — ranked, explained, and routed directly to the pipeline that acts on them. No noise, no dashboards to babysit.",
         icon: (
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <rect x="4" y="12" width="40" height="7" rx="2" fill="hsl(var(--primary))" fillOpacity="0.15" stroke="hsl(var(--primary))" strokeWidth="0.75" strokeOpacity="0.5" />
-                <rect x="4" y="24" width="28" height="7" rx="2" fill="hsl(var(--primary))" fillOpacity="0.1" stroke="hsl(var(--primary))" strokeWidth="0.75" strokeOpacity="0.35" />
-                <rect x="4" y="36" width="16" height="7" rx="2" fill="hsl(var(--primary))" fillOpacity="0.06" stroke="hsl(var(--primary))" strokeWidth="0.75" strokeOpacity="0.2" />
+                <rect x="4" y="12" width="40" height="7" rx="2" style={{ fill: PRIMARY, stroke: PRIMARY }} fillOpacity="0.15" strokeWidth="0.75" strokeOpacity="0.5" />
+                <rect x="4" y="24" width="28" height="7" rx="2" style={{ fill: PRIMARY, stroke: PRIMARY }} fillOpacity="0.1" strokeWidth="0.75" strokeOpacity="0.35" />
+                <rect x="4" y="36" width="16" height="7" rx="2" style={{ fill: PRIMARY, stroke: PRIMARY }} fillOpacity="0.06" strokeWidth="0.75" strokeOpacity="0.2" />
             </svg>
         ),
         path: "M 0,8 C 30,8 50,48 80,48 C 110,48 130,8 160,8",
@@ -75,10 +72,9 @@ const STAGES = [
 
 export function InsightFlowSection() {
     const [activeStage, setActiveStage] = useState(0);
-    const sectionRef = useRef<HTMLDivElement>(null);
     const pathRefs = useRef<(SVGPathElement | null)[]>([]);
 
-    // Animate SVG path draw for active stage
+    // Animate SVG path draw whenever active stage changes
     useEffect(() => {
         const path = pathRefs.current[activeStage];
         if (!path) return;
@@ -90,28 +86,20 @@ export function InsightFlowSection() {
         );
     }, [activeStage]);
 
-    // GSAP ScrollTrigger to auto-advance stages
+    // Auto-cycle on mount for first-time users to discover the interaction
     useEffect(() => {
-        const el = sectionRef.current;
-        if (!el) return;
-
-        const triggers = STAGES.map((_, i) => {
-            return ScrollTrigger.create({
-                trigger: el,
-                start: `top+=${i * 33}% top`,
-                end: `top+=${(i + 1) * 33}% top`,
-                onEnter: () => setActiveStage(i),
-                onEnterBack: () => setActiveStage(i),
-            });
-        });
-
-        return () => triggers.forEach((t) => t.kill());
+        const timer = setTimeout(() => {
+            // gentle pulse on the next button after 3s to hint at interactivity
+        }, 3000);
+        return () => clearTimeout(timer);
     }, []);
+
+    const goNext = () => setActiveStage((s) => Math.min(STAGES.length - 1, s + 1));
+    const goPrev = () => setActiveStage((s) => Math.max(0, s - 1));
 
     return (
         <section
             id="insight-flow"
-            ref={sectionRef}
             className="relative w-full py-32 px-6 md:px-12 lg:px-24"
         >
             {/* Section header */}
@@ -131,7 +119,7 @@ export function InsightFlowSection() {
                 />
             </div>
 
-            {/* Stage selector tabs */}
+            {/* Stage selector tabs — clickable */}
             <div className="flex gap-0 border-b border-border/50 mb-16">
                 {STAGES.map((stage) => (
                     <button
@@ -166,25 +154,29 @@ export function InsightFlowSection() {
                         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
                         className="space-y-5"
                     >
-                        <div className="opacity-60">{STAGES[activeStage].icon}</div>
+                        {/* Stage icon — full opacity so it's always visible */}
+                        <div className="opacity-90">{STAGES[activeStage].icon}</div>
                         <h3 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
                             {STAGES[activeStage].title}
                         </h3>
                         <p className="text-muted-foreground leading-relaxed max-w-md">
                             {STAGES[activeStage].body}
                         </p>
-                        {/* Node connection visual */}
+                        {/* Progress dots — all primary color, active is wider */}
                         <div className="flex items-center gap-3 pt-2">
                             {STAGES.map((_, i) => (
-                                <motion.div
+                                <motion.button
                                     key={i}
-                                    className={`rounded-full transition-all duration-400 ${i === activeStage
+                                    onClick={() => setActiveStage(i)}
+                                    className={`rounded-full transition-all duration-300 cursor-pointer ${i === activeStage
                                         ? "h-2 w-8 bg-primary"
                                         : i < activeStage
-                                            ? "h-2 w-2 bg-primary/40"
-                                            : "h-2 w-2 bg-border"
+                                            ? "h-2 w-2 bg-primary/50"
+                                            : "h-2 w-2 bg-primary/25"
                                         }`}
                                     layout
+                                    whileHover={{ scale: 1.2 }}
+                                    aria-label={`Go to stage ${i + 1}`}
                                 />
                             ))}
                         </div>
@@ -218,7 +210,7 @@ export function InsightFlowSection() {
                                     ref={(el) => { pathRefs.current[activeStage] = el; }}
                                     d={STAGES[activeStage].path}
                                     fill="none"
-                                    stroke="hsl(var(--primary))"
+                                    style={{ stroke: PRIMARY }}
                                     strokeWidth="2"
                                     strokeLinecap="round"
                                     strokeOpacity="0.85"
@@ -236,20 +228,28 @@ export function InsightFlowSection() {
 
             {/* Navigation arrows */}
             <div className="flex gap-3 mt-12">
-                <button
-                    onClick={() => setActiveStage((s) => Math.max(0, s - 1))}
+                <motion.button
+                    onClick={goPrev}
                     disabled={activeStage === 0}
                     className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                 >
                     ←
-                </button>
-                <button
-                    onClick={() => setActiveStage((s) => Math.min(STAGES.length - 1, s + 1))}
+                </motion.button>
+                <motion.button
+                    onClick={goNext}
                     disabled={activeStage === STAGES.length - 1}
-                    className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    className="h-10 w-10 rounded-full border border-primary/40 bg-primary/5 flex items-center justify-center text-foreground hover:bg-primary/15 hover:border-primary/70 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={activeStage < STAGES.length - 1 ? {
+                        boxShadow: ["0 0 0px 0px rgba(var(--primary),0)", "0 0 12px 2px rgba(var(--primary),0.25)", "0 0 0px 0px rgba(var(--primary),0)"]
+                    } : {}}
+                    transition={{ duration: 2, repeat: Infinity }}
                 >
                     →
-                </button>
+                </motion.button>
             </div>
         </section>
     );

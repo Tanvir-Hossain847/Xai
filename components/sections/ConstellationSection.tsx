@@ -6,14 +6,15 @@ import { AnimatedText } from "@/components/primitives/AnimatedText";
 
 // Node positions for the "chaos" state (random floating cluster)
 function buildChaosNodes(count: number, w: number, h: number) {
+    // Use deterministic pseudo-random so nodes don't jump on re-render
     return Array.from({ length: count }, (_, i) => ({
         id: i,
-        x: 100 + Math.random() * (w - 200),
-        y: 80 + Math.random() * (h - 160),
+        x: 100 + ((i * 137.508 + 31) % (w - 200)),
+        y: 80 + ((i * 97.3 + 17) % (h - 160)),
     }));
 }
 
-// Pipeline DAG layout — 4 stages
+// Pipeline DAG layout — 5 stages
 const PIPELINE_LAYOUT = (w: number, h: number) => [
     // Stage 0: sources (left)
     { id: 0, x: w * 0.12, y: h * 0.25 },
@@ -44,10 +45,19 @@ const EDGES = [
 const NODE_COUNT = 11;
 const STAGE_LABELS = ["Sources", "Ingest", "Process", "Route", "Decide"];
 
+const STEPS = [
+    { label: "Chaos", description: "Raw unstructured data nodes" },
+    { label: "Clustering", description: "Nodes grouping by signal type" },
+    { label: "Organizing", description: "Pipeline stages forming" },
+    { label: "Orchestrated", description: "Intelligence pipeline active" },
+];
+
 export function ConstellationSection() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dims, setDims] = useState({ w: 800, h: 400 });
-    const [progress, setProgress] = useState(0);
+    // progress driven by interactive step (0–3 maps to 0–1)
+    const [step, setStep] = useState(0);
+    const progress = step / (STEPS.length - 1);
 
     // Measure container
     useEffect(() => {
@@ -61,22 +71,7 @@ export function ConstellationSection() {
         return () => observer.disconnect();
     }, []);
 
-    // Scroll → progress
-    useEffect(() => {
-        const section = document.getElementById("constellation");
-        if (!section) return;
-        const update = () => {
-            const rect = section.getBoundingClientRect();
-            const vh = window.innerHeight;
-            const raw = 1 - (rect.bottom - vh * 0.3) / (rect.height * 0.6);
-            setProgress(Math.min(1, Math.max(0, raw)));
-        };
-        window.addEventListener("scroll", update, { passive: true });
-        update();
-        return () => window.removeEventListener("scroll", update);
-    }, []);
-
-    // Stable chaos positions (seeded by index)
+    // Stable chaos positions (deterministic)
     const chaosNodes = useMemo(
         () => buildChaosNodes(NODE_COUNT, dims.w, dims.h),
         [dims.w, dims.h]
@@ -87,7 +82,7 @@ export function ConstellationSection() {
         [dims.w, dims.h]
     );
 
-    // Interpolate between chaos and pipeline positions
+    // Interpolate between chaos and pipeline positions based on progress
     const nodes = useMemo(() =>
         chaosNodes.map((chaos, i) => {
             const target = pipelineNodes[i] || chaos;
@@ -102,6 +97,8 @@ export function ConstellationSection() {
 
     // Edge opacity: edges only visible when organized
     const edgeOpacity = Math.max(0, (progress - 0.5) * 2);
+
+    const currentStepInfo = STEPS[step];
 
     return (
         <section
@@ -130,9 +127,46 @@ export function ConstellationSection() {
                     viewport={{ once: true }}
                     transition={{ delay: 0.3 }}
                 >
-                    Scroll to watch unstructured data nodes self-organize into a
-                    deterministic automation pipeline.
+                    Click through the steps to watch unstructured data nodes
+                    self-organize into a deterministic automation pipeline.
                 </motion.p>
+            </div>
+
+            {/* Interactive step controls */}
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+                {STEPS.map((s, i) => (
+                    <motion.button
+                        key={s.label}
+                        onClick={() => setStep(i)}
+                        className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 cursor-pointer border ${step === i
+                            ? "bg-primary/15 border-primary/50 text-foreground"
+                            : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground/80 bg-card/20"
+                            }`}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                    >
+                        <span className="mr-2 text-primary/60 font-mono text-xs">0{i + 1}</span>
+                        {s.label}
+                        {step === i && (
+                            <motion.div
+                                className="absolute inset-0 rounded-lg bg-primary/5 border border-primary/20"
+                                layoutId="step-highlight"
+                                transition={{ duration: 0.3 }}
+                            />
+                        )}
+                    </motion.button>
+                ))}
+
+                {/* Quick description */}
+                <motion.span
+                    key={step}
+                    className="ml-2 text-xs text-muted-foreground/60 font-mono"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    — {currentStepInfo.description}
+                </motion.span>
             </div>
 
             {/* Canvas */}
@@ -175,14 +209,13 @@ export function ConstellationSection() {
                         const a = nodes[from];
                         const b = nodes[to];
                         if (!a || !b) return null;
-                        // Bezier curve midpoints
                         const mx = (a.x + b.x) / 2;
                         return (
                             <path
                                 key={i}
                                 d={`M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`}
                                 fill="none"
-                                stroke="hsl(var(--primary))"
+                                style={{ stroke: "var(--color-primary)" }}
                                 strokeWidth="1"
                                 strokeOpacity={edgeOpacity * 0.5}
                                 strokeLinecap="round"
@@ -192,8 +225,6 @@ export function ConstellationSection() {
 
                     {/* Nodes */}
                     {nodes.map((node, i) => {
-                        // Color based on pipeline stage
-                        const stage = i <= 2 ? 0 : i <= 4 ? 1 : i <= 7 ? 2 : i <= 9 ? 3 : 4;
                         const isDecision = i === 10;
                         return (
                             <g key={node.id}>
@@ -203,7 +234,7 @@ export function ConstellationSection() {
                                     cy={node.y}
                                     r={isDecision ? 22 : 14}
                                     fill="none"
-                                    stroke="hsl(var(--primary))"
+                                    style={{ stroke: "var(--color-primary)" }}
                                     strokeWidth="0.75"
                                     strokeOpacity={edgeOpacity * 0.3}
                                 />
@@ -212,8 +243,10 @@ export function ConstellationSection() {
                                     cx={node.x}
                                     cy={node.y}
                                     r={isDecision ? 8 : 5}
-                                    fill={isDecision ? "hsl(var(--primary))" : "hsl(var(--card))"}
-                                    stroke="hsl(var(--primary))"
+                                    style={{
+                                        fill: isDecision ? "var(--color-primary)" : "var(--color-card)",
+                                        stroke: "var(--color-primary)",
+                                    }}
                                     strokeWidth={isDecision ? 0 : 1.2}
                                     fillOpacity={isDecision ? 0.9 : 0.7}
                                     strokeOpacity={0.7}
@@ -223,17 +256,47 @@ export function ConstellationSection() {
                     })}
                 </svg>
 
-                {/* Progress label */}
+                {/* Progress bar at bottom */}
+                <div className="absolute bottom-0 left-0 right-0 h-px bg-border/30">
+                    <motion.div
+                        className="h-full bg-primary/60"
+                        animate={{ width: `${progress * 100}%` }}
+                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                </div>
+
+                {/* Status label */}
                 <div className="absolute bottom-4 right-4 text-right pointer-events-none">
-                    <span className="text-xs font-mono text-primary/50">
-                        {progress < 0.1
-                            ? "chaos"
-                            : progress < 0.5
-                                ? "clustering…"
-                                : progress < 0.9
-                                    ? "organizing…"
-                                    : "orchestrated"}
-                    </span>
+                    <motion.span
+                        key={step}
+                        className="text-xs font-mono text-primary/50"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                    >
+                        {currentStepInfo.label.toLowerCase()}
+                    </motion.span>
+                </div>
+
+                {/* Prev / Next navigation inside canvas */}
+                <div className="absolute bottom-3 left-4 flex gap-2">
+                    <motion.button
+                        onClick={() => setStep((s) => Math.max(0, s - 1))}
+                        disabled={step === 0}
+                        className="h-7 w-7 rounded-full border border-border/50 flex items-center justify-center text-muted-foreground/70 hover:border-primary/40 hover:text-foreground transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer text-xs"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        ←
+                    </motion.button>
+                    <motion.button
+                        onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+                        disabled={step === STEPS.length - 1}
+                        className="h-7 w-7 rounded-full border border-primary/40 bg-primary/10 flex items-center justify-center text-foreground hover:bg-primary/20 transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer text-xs"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        →
+                    </motion.button>
                 </div>
             </motion.div>
         </section>
